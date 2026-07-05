@@ -113,7 +113,7 @@ export default function AdminPage({
             className="text-center font-mono text-2xl tracking-widest"
             onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
           />
-          {authError && <p className="text-sm text-red-600">{authError}</p>}
+          {authError && <p className="text-sm text-clay">{authError}</p>}
           <Button className="w-full" disabled={pinInput.length !== 6} onClick={submitPin}>
             Unlock
           </Button>
@@ -171,12 +171,16 @@ export default function AdminPage({
 
   return (
     <PageShell title="Organizer dashboard" subtitle={info.event.name}>
-      {notice && <p className="mb-4 rounded-lg bg-emerald-100 p-3 text-sm text-emerald-900">{notice}</p>}
+      {notice && (
+        <p className="mb-4 rounded-sm border border-brass/40 bg-brass/10 p-3 text-sm text-ink">{notice}</p>
+      )}
 
       <Card className="mb-4 flex items-center justify-between">
         <div>
-          <div className="font-semibold">Status: {isFinal ? "Final" : "Live"}</div>
-          <div className="text-sm text-slate-500">
+          <div className="font-display text-lg font-semibold text-pine">
+            Status — {isFinal ? "Final" : "Live"}
+          </div>
+          <div className="text-[13px] text-putty">
             {isFinal ? "Scores locked; payouts official." : "Teams can enter scores; payouts are projected."}
           </div>
         </div>
@@ -200,7 +204,7 @@ export default function AdminPage({
 
       {info.contests.length > 0 && (
         <Card className="mb-4 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Contest winners</h2>
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.24em] text-putty">Contest winners</h2>
           {info.contests.map((c) => (
             <div key={c.id} className="flex items-center gap-2">
               <div className="flex-1">
@@ -213,11 +217,11 @@ export default function AdminPage({
               </div>
             </div>
           ))}
-          <p className="text-xs text-slate-500">Winner saves when you tap away from the box.</p>
+          <p className="text-xs text-putty">Winner saves when you tap away from the box.</p>
         </Card>
       )}
 
-      <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-slate-500">
+      <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-putty">
         Teams — tap to review or correct scores
       </h2>
       <div className="space-y-2">
@@ -227,21 +231,21 @@ export default function AdminPage({
           return (
             <Card key={team.id} className="!p-3">
               <button className="flex w-full items-center justify-between" onClick={() => setEditTeam(isOpen ? null : team.id)}>
-                <span className="font-semibold">{team.name}</span>
-                <span className="font-mono text-xs text-slate-500">code {team.joinCode}</span>
+                <span className="font-semibold text-ink">{team.name}</span>
+                <span className="font-mono text-xs text-putty">code {team.joinCode}</span>
               </button>
               {isOpen && (
                 <div className="mt-3 space-y-3">
-                  <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-50 p-2">
-                    <span className="truncate font-mono text-xs text-slate-600">{url}</span>
-                    <Button variant="secondary" className="!py-1.5 !px-3 text-xs" onClick={() => navigator.clipboard.writeText(url)}>
+                  <div className="flex items-center justify-between gap-2 rounded-sm bg-cream p-2">
+                    <span className="truncate font-mono text-xs text-ink/70">{url}</span>
+                    <Button variant="secondary" className="!py-1.5 !px-3 !text-[10px]" onClick={() => navigator.clipboard.writeText(url)}>
                       Copy link
                     </Button>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="text-xs">
                       <thead>
-                        <tr className="text-slate-400">
+                        <tr className="text-putty">
                           <th className="pr-2 text-left font-medium">Hole</th>
                           {info.holes.map((h) => (
                             <th key={h.holeNumber} className="px-0.5 text-center font-medium">{h.holeNumber}</th>
@@ -254,14 +258,14 @@ export default function AdminPage({
                           : team.players.map((p) => ({ id: p.id as string | null, name: p.name }))
                         ).map((rowP) => (
                           <tr key={rowP.id ?? "team"}>
-                            <td className="whitespace-nowrap pr-2 font-medium text-slate-600">{rowP.name}</td>
+                            <td className="whitespace-nowrap pr-2 font-medium text-ink/70">{rowP.name}</td>
                             {info.holes.map((h) => {
                               const key = rowP.id ? `${rowP.id}:${h.holeNumber}` : `${team.id}:team:${h.holeNumber}`;
                               return (
                                 <td key={h.holeNumber} className="p-0.5">
                                   <input
                                     aria-label={`${rowP.name} hole ${h.holeNumber}`}
-                                    className="h-9 w-9 rounded border border-emerald-200 text-center tabular-nums"
+                                    className="h-9 w-9 rounded-sm border border-ink/15 bg-paper text-center tabular-nums"
                                     inputMode="numeric"
                                     defaultValue={scores[key] ?? ""}
                                     onBlur={(e) => saveScore(team.id, rowP.id, h.holeNumber, e.target.value)}
@@ -274,7 +278,7 @@ export default function AdminPage({
                       </tbody>
                     </table>
                   </div>
-                  <p className="text-xs text-slate-500">Corrections save when you tap away from a box. Blank = no score.</p>
+                  <p className="text-xs text-putty">Corrections save when you tap away from a box. Blank = no score.</p>
                 </div>
               )}
             </Card>

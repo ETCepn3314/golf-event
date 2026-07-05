@@ -1,12 +1,54 @@
 @import "tailwindcss";
 
-@theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@theme {
+  --color-pine: #0f2a1f;
+  --color-moss: #1b4634;
+  --color-fern: #2e6b4f;
+  --color-cream: #f4efe3;
+  --color-paper: #fdfbf5;
+  --color-linen: #e7ddc6;
+  --color-ink: #1b2420;
+  --color-putty: #7c7565;
+  --color-brass: #a8863c;
+  --color-brass-light: #cfb069;
+  --color-clay: #a63d2a;
 }
 
-/* Always light: the app is used outdoors in sunlight, where dark UIs are unreadable. */
+@theme inline {
+  --font-sans: var(--font-archivo);
+  --font-display: var(--font-fraunces);
+}
+
+/* Deliberately light-only: this app is used outdoors in glare, and the
+   clubhouse-paper look is the brand. */
 body {
-  background: #ecfdf5;
-  color: #0f172a;
+  background: #f4efe3;
+  color: #1b2420;
+}
+
+/* Subtle depth for pine-green boards (hero, scoreboard). */
+.board-texture {
+  background-image:
+    radial-gradient(120% 90% at 15% 0%, rgba(207, 176, 105, 0.08), transparent 55%),
+    radial-gradient(140% 100% at 100% 100%, rgba(0, 0, 0, 0.35), transparent 60%);
+}
+
+/* Hairline double-rule, like a scorecard heading. */
+.rule-double {
+  border-top: 1px solid rgba(27, 36, 32, 0.35);
+  border-bottom: 1px solid rgba(27, 36, 32, 0.12);
+  height: 3px;
+}
+
+::selection {
+  background: #cfb069;
+  color: #0f2a1f;
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #a8863c;
+  outline-offset: 1px;
 }

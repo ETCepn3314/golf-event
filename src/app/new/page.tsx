@@ -114,35 +114,39 @@ export default function NewEventPage() {
   const steps = ["Event", "Course", "Teams", "Money", "Review"];
 
   return (
-    <PageShell title="Create an event" subtitle={`Step ${step + 1} of ${steps.length}: ${steps[step]}`}>
-      <div className="mb-4 flex gap-1">
+    <PageShell title="Create an event" subtitle={`Step ${step + 1} of ${steps.length} — ${steps[step]}`}>
+      <div className="mb-5 flex gap-1">
         {steps.map((s, i) => (
           <div
             key={s}
-            className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-emerald-600" : "bg-emerald-200"}`}
+            className={`h-[3px] flex-1 ${i <= step ? "bg-brass" : "bg-ink/10"}`}
           />
         ))}
       </div>
 
       {step === 0 && (
-        <Card className="space-y-4">
-          <Input label="Event name" value={name} placeholder="Spring Classic 2026" onChange={(e) => setName(e.target.value)} />
+        <Card className="space-y-5">
+          <Input label="Event name" value={name} placeholder="The Spring Invitational" onChange={(e) => setName(e.target.value)} />
           <Input label="Date" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
           <div>
-            <span className="mb-1 block text-sm font-medium text-slate-700">Format</span>
+            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+              Format
+            </span>
             <div className="space-y-2">
               {FORMATS.map((f) => (
                 <button
                   key={f.id}
                   onClick={() => setFormat(f.id)}
-                  className={`w-full rounded-xl border p-3 text-left ${
+                  className={`w-full rounded-sm border p-3.5 text-left transition-colors ${
                     format === f.id
-                      ? "border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600"
-                      : "border-emerald-200 bg-white"
+                      ? "border-pine bg-pine text-cream"
+                      : "border-ink/15 bg-paper hover:border-ink/35"
                   }`}
                 >
-                  <div className="font-semibold">{f.label}</div>
-                  <div className="text-sm text-slate-600">{f.blurb}</div>
+                  <div className="font-display text-lg font-semibold">{f.label}</div>
+                  <div className={`mt-0.5 text-[13px] ${format === f.id ? "text-cream/70" : "text-putty"}`}>
+                    {f.blurb}
+                  </div>
                 </button>
               ))}
             </div>
@@ -151,7 +155,7 @@ export default function NewEventPage() {
       )}
 
       {step === 1 && (
-        <Card className="space-y-4">
+        <Card className="space-y-5">
           <div className="flex gap-2">
             {([9, 18] as const).map((n) => (
               <Button
@@ -169,20 +173,22 @@ export default function NewEventPage() {
               <Button
                 key={p}
                 variant="secondary"
-                className="flex-1 !py-2 text-sm"
+                className="flex-1 !py-2 !text-[11px]"
                 onClick={() => setPars(pars.map(() => p))}
               >
                 All par {p}
               </Button>
             ))}
           </div>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
             {holeNumbers.map((n) => (
-              <div key={n} className="rounded-lg border border-emerald-200 p-2 text-center">
-                <div className="text-xs font-semibold text-slate-500">Hole {n}</div>
+              <div key={n} className="rounded-sm border border-ink/10 bg-cream/60 p-2 text-center">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-putty">
+                  Hole {n}
+                </div>
                 <select
                   aria-label={`Par for hole ${n}`}
-                  className="mt-1 w-full rounded border-0 bg-transparent text-center text-lg font-bold"
+                  className="mt-0.5 w-full rounded border-0 bg-transparent text-center font-display text-xl font-semibold text-pine"
                   value={pars[n - 1]}
                   onChange={(e) =>
                     setPars(pars.map((p, i) => (i === n - 1 ? parseInt(e.target.value) : p)))
@@ -195,7 +201,7 @@ export default function NewEventPage() {
                 {needsStrokeIndex && (
                   <input
                     aria-label={`Stroke index for hole ${n}`}
-                    className="mt-1 w-full rounded border border-emerald-100 text-center text-sm"
+                    className="mt-1 w-full rounded-sm border border-ink/15 bg-paper text-center text-sm"
                     value={strokeIndexes[n - 1]}
                     inputMode="numeric"
                     onChange={(e) =>
@@ -209,12 +215,16 @@ export default function NewEventPage() {
             ))}
           </div>
           {needsStrokeIndex && (
-            <p className="text-xs text-slate-500">
-              The small box is the hole&apos;s stroke index (1 = hardest), used to allocate handicap strokes. It&apos;s printed on the course scorecard.
+            <p className="text-xs leading-relaxed text-putty">
+              The small box is the hole&apos;s stroke index (1 = hardest), used to allocate handicap
+              strokes. It&apos;s printed on the course scorecard.
             </p>
           )}
-          <div className="text-sm text-slate-600">
-            Total par: <strong>{holeNumbers.reduce((a, n) => a + pars[n - 1], 0)}</strong>
+          <div className="border-t border-ink/10 pt-3 text-sm text-putty">
+            Total par{" "}
+            <span className="font-display text-lg font-semibold text-pine">
+              {holeNumbers.reduce((a, n) => a + pars[n - 1], 0)}
+            </span>
           </div>
         </Card>
       )}
@@ -291,7 +301,7 @@ export default function NewEventPage() {
             </Card>
           ))}
           {needsHandicaps && (
-            <p className="text-xs text-slate-500">The narrow box is each player&apos;s course handicap.</p>
+            <p className="text-xs text-putty">The narrow box is each player&apos;s course handicap.</p>
           )}
           <Button variant="secondary" className="w-full" onClick={() => setTeams([...teams, emptyTeam(teams.length + 1)])}>
             + Add team
@@ -301,26 +311,32 @@ export default function NewEventPage() {
 
       {step === 3 && (
         <div className="space-y-4">
-          <Card className="space-y-4">
+          <Card className="space-y-5">
             <Input
               label="Entry fee per team ($)"
               inputMode="decimal"
               value={entryFee}
               onChange={(e) => setEntryFee(e.target.value)}
             />
-            <div className="rounded-xl bg-emerald-100 p-3 text-center">
-              <div className="text-sm text-emerald-800">Pot: {teams.length} teams × ${parseFloat(entryFee) || 0}</div>
-              <div className="text-2xl font-bold text-emerald-900">${pot.toFixed(2)}</div>
+            <div className="board-texture rounded-sm bg-pine p-4 text-center text-cream">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-cream/60">
+                The purse — {teams.length} teams × ${parseFloat(entryFee) || 0}
+              </div>
+              <div className="mt-1 font-display text-4xl font-semibold text-brass-light">
+                ${pot.toFixed(2)}
+              </div>
             </div>
             <div>
-              <span className="mb-1 block text-sm font-medium text-slate-700">Payout type</span>
+              <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+                Payout type
+              </span>
               <div className="flex gap-2">
                 <Button
                   variant={payoutType === "percentage" ? "primary" : "secondary"}
                   className="flex-1"
                   onClick={() => setPayoutType("percentage")}
                 >
-                  % of pot
+                  % of purse
                 </Button>
                 <Button
                   variant={payoutType === "fixed" ? "primary" : "secondary"}
@@ -334,7 +350,7 @@ export default function NewEventPage() {
             <div className="space-y-2">
               {places.map((p, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="w-14 text-sm font-medium text-slate-600">
+                  <span className="w-12 font-display text-base font-semibold text-pine">
                     {["1st", "2nd", "3rd"][i] ?? `${i + 1}th`}
                   </span>
                   <Input
@@ -343,7 +359,7 @@ export default function NewEventPage() {
                     value={p}
                     onChange={(e) => setPlaces(places.map((v, j) => (j === i ? e.target.value : v)))}
                   />
-                  <span className="text-sm text-slate-500">
+                  <span className="w-16 text-right text-[13px] tabular-nums text-putty">
                     {payoutType === "percentage"
                       ? `$${((pot * (parseFloat(p) || 0)) / 100).toFixed(2)}`
                       : "$"}
@@ -353,11 +369,11 @@ export default function NewEventPage() {
                   </Button>
                 </div>
               ))}
-              <Button variant="secondary" className="w-full !py-2 text-sm" onClick={() => setPlaces([...places, ""])}>
+              <Button variant="secondary" className="w-full !py-2 !text-[11px]" onClick={() => setPlaces([...places, ""])}>
                 + Add place
               </Button>
               {payoutType === "percentage" && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-putty">
                   Percentages total {places.reduce((a, p) => a + (parseFloat(p) || 0), 0)}%.
                 </p>
               )}
@@ -365,11 +381,13 @@ export default function NewEventPage() {
           </Card>
 
           <Card className="space-y-2">
-            <span className="block text-sm font-medium text-slate-700">Side contests (optional)</span>
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+              Side contests (optional)
+            </span>
             {contests.map((c, i) => (
               <div key={i} className="flex gap-2">
                 <Input
-                  placeholder="Closest to pin #7"
+                  placeholder="Closest to pin — No. 7"
                   value={c.name}
                   onChange={(e) => setContests(contests.map((v, j) => (j === i ? { ...v, name: e.target.value } : v)))}
                 />
@@ -386,14 +404,16 @@ export default function NewEventPage() {
                 </Button>
               </div>
             ))}
-            <Button variant="secondary" className="w-full !py-2 text-sm" onClick={() => setContests([...contests, { name: "", prizeAmount: "25" }])}>
+            <Button variant="secondary" className="w-full !py-2 !text-[11px]" onClick={() => setContests([...contests, { name: "", prizeAmount: "25" }])}>
               + Add contest
             </Button>
           </Card>
 
           {format === "best_ball" && (
             <Card>
-              <span className="mb-1 block text-sm font-medium text-slate-700">Best N net scores count per hole</span>
+              <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+                Best N net scores count per hole
+              </span>
               <div className="flex gap-2">
                 {[1, 2, 3, 4].map((n) => (
                   <Button
@@ -417,7 +437,7 @@ export default function NewEventPage() {
           <Row label="Format" value={FORMATS.find((f) => f.id === format)!.label} />
           <Row label="Course" value={`${holesToPlay} holes, par ${holeNumbers.reduce((a, n) => a + pars[n - 1], 0)}`} />
           <Row label="Teams" value={`${teams.length} teams`} />
-          <Row label="Entry fee" value={`$${parseFloat(entryFee) || 0} per team → $${pot.toFixed(2)} pot`} />
+          <Row label="Entry fee" value={`$${parseFloat(entryFee) || 0} per team → $${pot.toFixed(2)} purse`} />
           <Row
             label="Payouts"
             value={places
@@ -428,15 +448,20 @@ export default function NewEventPage() {
           {contests.filter((c) => c.name.trim()).length > 0 && (
             <Row label="Contests" value={contests.filter((c) => c.name.trim()).map((c) => `${c.name} ($${c.prizeAmount})`).join(", ")} />
           )}
-          <p className="text-slate-500">
-            After you create the event you&apos;ll get an organizer PIN and a link for each team. Scores can be entered right away.
+          <p className="pt-1 text-[13px] leading-relaxed text-putty">
+            After you create the event you&apos;ll get an organizer PIN and a private link for each
+            team. Scoring opens immediately.
           </p>
         </Card>
       )}
 
-      {error && <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {error && (
+        <p className="mt-4 rounded-sm border border-clay/40 bg-clay/10 p-3 text-sm text-clay">
+          {error}
+        </p>
+      )}
 
-      <div className="mt-5 flex gap-2">
+      <div className="mt-6 flex gap-2">
         {step > 0 && (
           <Button variant="secondary" className="flex-1" onClick={() => setStep(step - 1)}>
             Back
@@ -462,9 +487,9 @@ export default function NewEventPage() {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-emerald-50 pb-2 last:border-0">
-      <span className="font-medium text-slate-500">{label}</span>
-      <span className="text-right">{value}</span>
+    <div className="flex justify-between gap-4 border-b border-ink/8 pb-2.5 last:border-0 last:pb-0">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">{label}</span>
+      <span className="text-right text-ink">{value}</span>
     </div>
   );
 }
@@ -482,46 +507,58 @@ function ShareScreen({ created, eventName }: { created: CreatedEvent; eventName:
   const leaderboardUrl = `${origin}/e/${created.slug}`;
 
   return (
-    <PageShell title="Event created 🎉" subtitle={eventName}>
-      <Card className="mb-4 border-amber-300 bg-amber-50">
-        <div className="text-sm font-medium text-amber-900">Your organizer PIN — save it now, it is only shown here:</div>
-        <div className="mt-1 flex items-center justify-between">
-          <span className="font-mono text-3xl font-bold tracking-widest text-amber-900">{created.organizerPin}</span>
-          <Button variant="secondary" onClick={() => copy("pin", created.organizerPin)}>
-            {copied === "pin" ? "Copied ✓" : "Copy"}
-          </Button>
+    <PageShell title="You're on the tee" subtitle={eventName}>
+      <div className="board-texture mb-4 rounded-md bg-pine p-4 text-cream">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brass-light">
+          Organizer PIN — shown only once
         </div>
-        <p className="mt-2 text-xs text-amber-800">
-          You need it to correct scores, enter contest winners, and finalize results. (It&apos;s also remembered on this device.)
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <span className="font-display text-4xl font-semibold tracking-[0.2em] text-cream">
+            {created.organizerPin}
+          </span>
+          <button
+            onClick={() => copy("pin", created.organizerPin)}
+            className="rounded-sm border border-cream/40 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cream transition-colors hover:bg-cream/10"
+          >
+            {copied === "pin" ? "Copied" : "Copy"}
+          </button>
+        </div>
+        <p className="mt-3 text-[13px] leading-relaxed text-cream/65">
+          You&apos;ll need it to correct scores, record contest winners, and finalize results.
+          It&apos;s also remembered on this device.
         </p>
-      </Card>
+      </div>
 
       <Card className="mb-4">
-        <div className="text-sm font-medium text-slate-700">Public leaderboard — share with everyone:</div>
-        <div className="mt-1 flex items-center justify-between gap-2">
-          <a className="truncate font-mono text-sm text-emerald-700 underline" href={leaderboardUrl}>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+          Public leaderboard — share with everyone
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <a className="truncate font-mono text-[13px] text-pine underline decoration-brass underline-offset-2" href={leaderboardUrl}>
             {leaderboardUrl}
           </a>
-          <Button variant="secondary" onClick={() => copy("lb", leaderboardUrl)}>
-            {copied === "lb" ? "Copied ✓" : "Copy"}
+          <Button variant="secondary" className="!py-2 !px-3 !text-[11px]" onClick={() => copy("lb", leaderboardUrl)}>
+            {copied === "lb" ? "Copied" : "Copy"}
           </Button>
         </div>
       </Card>
 
-      <div className="mb-2 text-sm font-medium text-slate-700">Team scoring links — text each one to its team:</div>
-      <div className="space-y-2">
+      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+        Team scoring links — text each one to its team
+      </div>
+      <div className="divide-y divide-ink/10 rounded-md border border-ink/10 bg-paper">
         {created.teams.map((t) => {
           const url = `${origin}/e/${created.slug}/t/${t.joinCode}`;
           return (
-            <Card key={t.id} className="flex items-center justify-between gap-2 !p-3">
+            <div key={t.id} className="flex items-center justify-between gap-2 px-4 py-3">
               <div className="min-w-0">
-                <div className="font-semibold">{t.name}</div>
-                <div className="truncate font-mono text-xs text-slate-500">{url}</div>
+                <div className="font-semibold text-ink">{t.name}</div>
+                <div className="truncate font-mono text-xs text-putty">{url}</div>
               </div>
-              <Button variant="secondary" onClick={() => copy(t.id, url)}>
-                {copied === t.id ? "Copied ✓" : "Copy"}
+              <Button variant="secondary" className="!py-2 !px-3 !text-[11px]" onClick={() => copy(t.id, url)}>
+                {copied === t.id ? "Copied" : "Copy"}
               </Button>
-            </Card>
+            </div>
           );
         })}
       </div>
@@ -531,7 +568,7 @@ function ShareScreen({ created, eventName }: { created: CreatedEvent; eventName:
           <Button className="w-full">Open leaderboard</Button>
         </a>
         <a href={`/e/${created.slug}/admin`} className="flex-1">
-          <Button variant="secondary" className="w-full">Organizer dashboard</Button>
+          <Button variant="secondary" className="w-full">Organizer desk</Button>
         </a>
       </div>
     </PageShell>
