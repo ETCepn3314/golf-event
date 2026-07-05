@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useCallback, useEffect, useRef, useState } from "react";
-import { Button, Card } from "@/components/ui";
 import {
   enqueue,
   flushQueue,
@@ -111,15 +110,19 @@ export default function ScoreEntryPage({
 
   if (loadError) {
     return (
-      <main className="mx-auto max-w-md p-6 text-center">
-        <h1 className="text-xl font-bold text-red-700">Can&apos;t open scorecard</h1>
-        <p className="mt-2 text-slate-600">{loadError}</p>
-        <p className="mt-2 text-sm text-slate-500">Check that your team link is correct.</p>
+      <main className="mx-auto max-w-md p-8 text-center">
+        <h1 className="font-display text-2xl font-semibold text-clay">Can&apos;t open scorecard</h1>
+        <p className="mt-2 text-putty">{loadError}</p>
+        <p className="mt-2 text-sm text-putty/80">Check that your team link is correct.</p>
       </main>
     );
   }
   if (!info) {
-    return <main className="p-8 text-center text-slate-500">Loading scorecard…</main>;
+    return (
+      <main className="p-10 text-center text-sm uppercase tracking-[0.2em] text-putty">
+        Loading scorecard…
+      </main>
+    );
   }
 
   const isTeamFormat = info.event.format === "scramble";
@@ -151,145 +154,167 @@ export default function ScoreEntryPage({
   const holeIndex = info.holes.findIndex((h) => h.holeNumber === hole);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 py-4">
-      <header className="mb-3 flex items-center justify-between">
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col">
+      {/* Team masthead */}
+      <header className="board-texture flex items-center justify-between bg-pine px-4 py-3.5 text-cream">
         <div>
-          <div className="text-sm text-slate-500">{info.event.name}</div>
-          <div className="text-lg font-bold text-emerald-900">{info.team.name}</div>
+          <div className="text-[10px] uppercase tracking-[0.24em] text-cream/55">
+            {info.event.name}
+          </div>
+          <div className="font-display text-lg font-semibold leading-tight">{info.team.name}</div>
         </div>
         <SyncPill state={sync} />
       </header>
 
-      {finalized && (
-        <div className="mb-3 rounded-xl bg-amber-100 p-3 text-center text-sm font-medium text-amber-900">
-          Event is finalized — scores are locked.
-        </div>
-      )}
-
-      <Card className="mb-3 flex items-center justify-between !p-3">
-        <Button
-          variant="secondary"
-          className="!px-5 !py-4 text-xl"
-          disabled={holeIndex <= 0}
-          aria-label="Previous hole"
-          onClick={() => setHole(info.holes[holeIndex - 1].holeNumber)}
-        >
-          ←
-        </Button>
-        <div className="text-center">
-          <div className="text-3xl font-bold text-emerald-900">Hole {currentHole.holeNumber}</div>
-          <div className="text-sm text-slate-500">
-            Par {currentHole.par}
-            {currentHole.strokeIndex ? ` · SI ${currentHole.strokeIndex}` : ""}
+      <div className="flex flex-1 flex-col px-4 py-4">
+        {finalized && (
+          <div className="mb-3 rounded-sm border border-brass/40 bg-brass/10 p-3 text-center text-[13px] font-semibold uppercase tracking-[0.12em] text-ink">
+            Event finalized — scores are locked
           </div>
-        </div>
-        <Button
-          variant="secondary"
-          className="!px-5 !py-4 text-xl"
-          disabled={holeIndex >= info.holes.length - 1}
-          aria-label="Next hole"
-          onClick={() => setHole(info.holes[holeIndex + 1].holeNumber)}
-        >
-          →
-        </Button>
-      </Card>
+        )}
 
-      <div className="flex-1 space-y-3">
-        {rows.map((row) => {
-          const key = scoreKey(row.playerId, currentHole.holeNumber);
-          const value = scores[key];
-          return (
-            <Card key={key} className="!p-3">
-              <div className="mb-2 flex items-baseline justify-between">
-                <span className="font-semibold">{row.label}</span>
-                {value !== undefined && (
-                  <span className="text-sm text-slate-500">{describeScore(value, currentHole.par)}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  className="h-16 w-16 shrink-0 rounded-2xl bg-emerald-100 text-3xl font-bold text-emerald-900 active:bg-emerald-200 disabled:opacity-30"
-                  disabled={finalized || value === undefined || value <= 1}
-                  aria-label={`Decrease ${row.label} score`}
-                  onClick={() => setStrokes(row.playerId, (value ?? currentHole.par) - 1)}
-                >
-                  −
-                </button>
-                <div className="flex-1 text-center">
-                  {value === undefined ? (
-                    <button
-                      className="w-full rounded-2xl border-2 border-dashed border-emerald-300 py-3 text-lg font-medium text-emerald-700 active:bg-emerald-50"
-                      disabled={finalized}
-                      onClick={() => setStrokes(row.playerId, currentHole.par)}
-                    >
-                      Tap: par {currentHole.par}
-                    </button>
-                  ) : (
-                    <span className="text-5xl font-bold tabular-nums text-slate-900">{value}</span>
+        {/* Hole header */}
+        <div className="mb-4 flex items-center justify-between rounded-md border border-ink/10 bg-paper px-2 py-2">
+          <button
+            className="flex h-14 w-14 items-center justify-center rounded-sm border border-ink/15 text-xl text-ink transition-colors active:bg-linen disabled:opacity-25"
+            disabled={holeIndex <= 0}
+            aria-label="Previous hole"
+            onClick={() => setHole(info.holes[holeIndex - 1].holeNumber)}
+          >
+            ←
+          </button>
+          <div className="text-center">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-putty">Hole</div>
+            <div className="font-display text-4xl font-semibold leading-none text-pine">
+              {currentHole.holeNumber}
+            </div>
+            <div className="mt-1 text-[12px] uppercase tracking-[0.14em] text-putty">
+              Par {currentHole.par}
+              {currentHole.strokeIndex ? ` · SI ${currentHole.strokeIndex}` : ""}
+            </div>
+          </div>
+          <button
+            className="flex h-14 w-14 items-center justify-center rounded-sm border border-ink/15 text-xl text-ink transition-colors active:bg-linen disabled:opacity-25"
+            disabled={holeIndex >= info.holes.length - 1}
+            aria-label="Next hole"
+            onClick={() => setHole(info.holes[holeIndex + 1].holeNumber)}
+          >
+            →
+          </button>
+        </div>
+
+        {/* Score rows */}
+        <div className="flex-1 space-y-3">
+          {rows.map((row) => {
+            const key = scoreKey(row.playerId, currentHole.holeNumber);
+            const value = scores[key];
+            return (
+              <div key={key} className="rounded-md border border-ink/10 bg-paper p-3">
+                <div className="mb-2 flex items-baseline justify-between">
+                  <span className="font-semibold text-ink">{row.label}</span>
+                  {value !== undefined && (
+                    <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-brass">
+                      {describeScore(value, currentHole.par)}
+                    </span>
                   )}
                 </div>
-                <button
-                  className="h-16 w-16 shrink-0 rounded-2xl bg-emerald-100 text-3xl font-bold text-emerald-900 active:bg-emerald-200 disabled:opacity-30"
-                  disabled={finalized || (value ?? 0) >= 20}
-                  aria-label={`Increase ${row.label} score`}
-                  onClick={() => setStrokes(row.playerId, (value ?? currentHole.par - 1) + 1)}
-                >
-                  +
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    className="h-16 w-16 shrink-0 rounded-sm border border-ink/15 bg-cream text-3xl font-semibold text-pine transition-colors active:bg-linen disabled:opacity-25"
+                    disabled={finalized || value === undefined || value <= 1}
+                    aria-label={`Decrease ${row.label} score`}
+                    onClick={() => setStrokes(row.playerId, (value ?? currentHole.par) - 1)}
+                  >
+                    −
+                  </button>
+                  <div className="flex-1 text-center">
+                    {value === undefined ? (
+                      <button
+                        className="w-full rounded-sm border border-dashed border-brass/60 py-3.5 text-[13px] font-semibold uppercase tracking-[0.14em] text-brass transition-colors active:bg-brass/10"
+                        disabled={finalized}
+                        onClick={() => setStrokes(row.playerId, currentHole.par)}
+                      >
+                        Tap for par {currentHole.par}
+                      </button>
+                    ) : (
+                      <span className="font-display text-6xl font-semibold tabular-nums text-pine">
+                        {value}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    className="h-16 w-16 shrink-0 rounded-sm border border-ink/15 bg-cream text-3xl font-semibold text-pine transition-colors active:bg-linen disabled:opacity-25"
+                    disabled={finalized || (value ?? 0) >= 20}
+                    aria-label={`Increase ${row.label} score`}
+                    onClick={() => setStrokes(row.playerId, (value ?? currentHole.par - 1) + 1)}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-            </Card>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        {/* Hole navigator */}
+        <nav className="mt-5 grid grid-cols-9 gap-1">
+          {info.holes.map((h) => {
+            const complete = rows.every(
+              (r) => scores[scoreKey(r.playerId, h.holeNumber)] !== undefined
+            );
+            return (
+              <button
+                key={h.holeNumber}
+                onClick={() => setHole(h.holeNumber)}
+                className={`rounded-sm py-2 text-[13px] font-semibold tabular-nums transition-colors ${
+                  h.holeNumber === hole
+                    ? "bg-pine text-cream"
+                    : complete
+                      ? "bg-linen text-ink"
+                      : "border border-ink/10 bg-paper text-putty"
+                }`}
+              >
+                {h.holeNumber}
+              </button>
+            );
+          })}
+        </nav>
+
+        <a
+          href={`/e/${slug}`}
+          className="mt-5 block rounded-sm border border-ink/25 py-3.5 text-center text-[13px] font-semibold uppercase tracking-[0.16em] text-ink transition-colors hover:bg-linen/60"
+        >
+          View leaderboard
+        </a>
       </div>
-
-      <nav className="mt-4 grid grid-cols-9 gap-1">
-        {info.holes.map((h) => {
-          const complete = rows.every(
-            (r) => scores[scoreKey(r.playerId, h.holeNumber)] !== undefined
-          );
-          return (
-            <button
-              key={h.holeNumber}
-              onClick={() => setHole(h.holeNumber)}
-              className={`rounded-lg py-2 text-sm font-semibold ${
-                h.holeNumber === hole
-                  ? "bg-emerald-700 text-white"
-                  : complete
-                    ? "bg-emerald-200 text-emerald-900"
-                    : "bg-white text-slate-400 border border-emerald-100"
-              }`}
-            >
-              {h.holeNumber}
-            </button>
-          );
-        })}
-      </nav>
-
-      <a href={`/e/${slug}`} className="mt-4">
-        <Button variant="secondary" className="w-full">View leaderboard</Button>
-      </a>
     </main>
   );
 }
 
 function SyncPill({ state }: { state: SyncState }) {
   const styles = {
-    saved: "bg-emerald-100 text-emerald-800",
-    saving: "bg-sky-100 text-sky-800",
-    pending: "bg-amber-100 text-amber-900",
+    saved: "border-cream/30 text-cream/90",
+    saving: "border-brass-light/60 text-brass-light",
+    pending: "border-[#ff8a70]/60 text-[#ff8a70]",
   }[state];
-  const label = { saved: "Saved ✓", saving: "Saving…", pending: "Offline — will retry" }[state];
-  return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${styles}`}>{label}</span>;
+  const label = { saved: "Saved", saving: "Saving…", pending: "Offline · will retry" }[state];
+  return (
+    <span
+      className={`rounded-sm border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${styles}`}
+    >
+      {label}
+    </span>
+  );
 }
 
 function describeScore(strokes: number, par: number): string {
   const diff = strokes - par;
-  if (strokes === 1) return "Ace!";
+  if (strokes === 1) return "Ace";
   if (diff <= -3) return "Albatross";
   if (diff === -2) return "Eagle";
   if (diff === -1) return "Birdie";
   if (diff === 0) return "Par";
   if (diff === 1) return "Bogey";
-  if (diff === 2) return "Double bogey";
+  if (diff === 2) return "Double";
   return `+${diff}`;
 }

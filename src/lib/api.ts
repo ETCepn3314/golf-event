@@ -17,11 +17,14 @@ export function jsonError(status: number, message: string) {
 }
 
 export async function loadEvent(slug: string): Promise<EventRecord | null> {
-  const { data } = await db()
+  const { data, error } = await db()
     .from("events")
     .select("*")
     .eq("slug", slug)
     .maybeSingle();
+  // Distinguish "no such event" from "the database is unreachable" — otherwise
+  // connection problems masquerade as 404s.
+  if (error) throw new Error(`Database error: ${error.message}`);
   return (data as EventRecord | null) ?? null;
 }
 

@@ -1,20 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, Fraunces } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
-  title: "Golf Event",
-  description: "Live scoring and payouts for golf outings",
+  title: "Golf Event — Live scoring & payouts",
+  description:
+    "Run your golf outing properly: live scoring, standings, and payouts. No apps, no accounts — just links.",
 };
 
 export const viewport: Viewport = {
@@ -29,11 +31,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-emerald-50 text-slate-900">
+    <html lang="en" className={`${archivo.variable} ${fraunces.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-cream text-ink font-sans">
         {children}
       </body>
     </html>
