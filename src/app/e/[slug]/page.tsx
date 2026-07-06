@@ -115,6 +115,17 @@ export default function LeaderboardPage({
         Tap a row for the full card
       </p>
 
+      {data.event.rulesNotes && (
+        <section className="mt-6 rounded-md border border-brass/40 bg-brass/5 px-4 py-3.5">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brass">
+            Tournament rules
+          </h2>
+          <p className="mt-1.5 whitespace-pre-wrap text-[13px] leading-relaxed text-ink/80">
+            {data.event.rulesNotes}
+          </p>
+        </section>
+      )}
+
       {data.contests.length > 0 && (
         <section className="mt-8">
           <h2 className="px-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-putty">

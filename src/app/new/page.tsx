@@ -47,7 +47,81 @@ export default function NewEventPage() {
   const [payoutType, setPayoutType] = useState<"percentage" | "fixed">("percentage");
   const [places, setPlaces] = useState<string[]>(["50", "30", "20"]);
   const [countBestN, setCountBestN] = useState(2);
+  const [allowancePct, setAllowancePct] = useState("100");
+  const [stablefordPoints, setStablefordPoints] = useState<Record<string, string>>({
+    "-3": "5", "-2": "4", "-1": "3", "0": "2", "1": "1", "2": "0",
+  });
+  const [rulesNotes, setRulesNotes] = useState("");
   const [contests, setContests] = useState<{ name: string; prizeAmount: string }[]>([]);
+
+  const [courseQuery, setCourseQuery] = useState("");
+  const [courseResults, setCourseResults] = useState<
+    { id: string; name: string; locality: string; lat: number; lon: number }[] | null
+  >(null);
+  const [courseBusy, setCourseBusy] = useState(false);
+  const [courseMsg, setCourseMsg] = useState<string | null>(null);
+
+  async function searchCourses() {
+    setCourseBusy(true);
+    setCourseMsg(null);
+    setCourseResults(null);
+    try {
+      const res = await fetch(`/api/courses/search?q=${encodeURIComponent(courseQuery)}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Search failed");
+      if (json.courses.length === 0) {
+        setCourseMsg("No courses found by that name — check spelling, or enter the scorecard manually.");
+      } else {
+        setCourseResults(json.courses);
+      }
+    } catch (e) {
+      setCourseMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setCourseBusy(false);
+    }
+  }
+
+  async function applyCourse(c: { id: string; name: string; lat: number; lon: number }) {
+    setCourseBusy(true);
+    setCourseMsg(null);
+    try {
+      const res = await fetch(
+        `/api/courses/search?osm=${encodeURIComponent(c.id)}&lat=${c.lat}&lon=${c.lon}`
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Lookup failed");
+      const found: { holeNumber: number; par: number; strokeIndex: number | null }[] = json.holes;
+      if (found.length === 0) {
+        setCourseMsg(`${c.name} is on the map, but its scorecard isn't — enter pars manually.`);
+        return;
+      }
+      if (found.length >= 18) setHolesToPlay(18);
+      else if (found.length >= 9 && found.length < 18) setHolesToPlay(9);
+      setPars((prev) => {
+        const next = [...prev];
+        for (const h of found) next[h.holeNumber - 1] = h.par;
+        return next;
+      });
+      const anySi = found.some((h) => h.strokeIndex);
+      if (anySi) {
+        setStrokeIndexes((prev) => {
+          const next = [...prev];
+          for (const h of found) {
+            if (h.strokeIndex) next[h.holeNumber - 1] = String(h.strokeIndex);
+          }
+          return next;
+        });
+      }
+      setCourseResults(null);
+      setCourseMsg(
+        `Filled ${found.length} holes from ${c.name}${anySi ? " (incl. stroke indexes)" : ""} — double-check against the printed scorecard.`
+      );
+    } catch (e) {
+      setCourseMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setCourseBusy(false);
+    }
+  }
 
   const needsHandicaps = format === "best_ball" || format === "stableford";
   const needsStrokeIndex = needsHandicaps;
@@ -73,8 +147,23 @@ export default function NewEventPage() {
           },
           holesToPlay,
           ...(format === "best_ball"
-            ? { bestBall: { countBestN, handicapAllowancePct: 100 } }
+            ? {
+                bestBall: {
+                  countBestN,
+                  handicapAllowancePct: parseFloat(allowancePct) || 100,
+                },
+              }
             : {}),
+          ...(format === "stableford"
+            ? {
+                stableford: {
+                  points: Object.fromEntries(
+                    Object.entries(stablefordPoints).map(([k, v]) => [k, parseInt(v) || 0])
+                  ),
+                },
+              }
+            : {}),
+          ...(rulesNotes.trim() ? { rulesNotes: rulesNotes.trim() } : {}),
         },
         holes: holeNumbers.map((n) => ({
           holeNumber: n,
@@ -134,20 +223,79 @@ export default function NewEventPage() {
             </span>
             <div className="space-y-2">
               {FORMATS.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setFormat(f.id)}
-                  className={`w-full rounded-sm border p-3.5 text-left transition-colors ${
-                    format === f.id
-                      ? "border-pine bg-pine text-cream"
-                      : "border-ink/15 bg-paper hover:border-ink/35"
-                  }`}
-                >
-                  <div className="font-display text-lg font-semibold">{f.label}</div>
-                  <div className={`mt-0.5 text-[13px] ${format === f.id ? "text-cream/70" : "text-putty"}`}>
-                    {f.blurb}
-                  </div>
-                </button>
+                <div key={f.id}>
+                  <button
+                    onClick={() => setFormat(f.id)}
+                    className={`w-full rounded-sm border p-3.5 text-left transition-colors ${
+                      format === f.id
+                        ? "border-pine bg-pine text-cream"
+                        : "border-ink/15 bg-paper hover:border-ink/35"
+                    }`}
+                  >
+                    <div className="font-display text-lg font-semibold">{f.label}</div>
+                    <div className={`mt-0.5 text-[13px] ${format === f.id ? "text-cream/70" : "text-putty"}`}>
+                      {f.blurb}
+                    </div>
+                  </button>
+
+                  {format === f.id && f.id === "stableford" && (
+                    <div className="mt-1 rounded-sm border border-brass/40 bg-brass/5 p-3">
+                      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+                        Points per hole (net score vs par)
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([["-3", "Albatross"], ["-2", "Eagle"], ["-1", "Birdie"], ["0", "Par"], ["1", "Bogey"], ["2", "Double"]] as const).map(([diff, label]) => (
+                          <label key={diff} className="block text-center">
+                            <span className="block text-[11px] text-putty">{label}</span>
+                            <input
+                              aria-label={`Points for ${label}`}
+                              inputMode="numeric"
+                              className="w-full rounded-sm border border-ink/20 bg-paper py-1.5 text-center font-semibold"
+                              value={stablefordPoints[diff]}
+                              onChange={(e) =>
+                                setStablefordPoints({ ...stablefordPoints, [diff]: e.target.value })
+                              }
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      <p className="mt-2 text-[11px] text-putty">
+                        Triple bogey or worse scores 0. Edit the numbers to match your outing&apos;s rules.
+                      </p>
+                    </div>
+                  )}
+
+                  {format === f.id && f.id === "best_ball" && (
+                    <div className="mt-1 space-y-3 rounded-sm border border-brass/40 bg-brass/5 p-3">
+                      <div>
+                        <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+                          Best N net scores count per hole
+                        </div>
+                        <div className="flex gap-2">
+                          {[1, 2, 3, 4].map((n) => (
+                            <Button
+                              key={n}
+                              variant={countBestN === n ? "primary" : "secondary"}
+                              className="flex-1 !py-2"
+                              onClick={() => setCountBestN(n)}
+                            >
+                              {n}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                      <Input
+                        label="Handicap allowance (%)"
+                        inputMode="numeric"
+                        value={allowancePct}
+                        onChange={(e) => setAllowancePct(e.target.value)}
+                      />
+                      <p className="text-[11px] text-putty">
+                        Many outings play 90% allowance; 100% uses full course handicaps.
+                      </p>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -156,6 +304,48 @@ export default function NewEventPage() {
 
       {step === 1 && (
         <Card className="space-y-5">
+          <div>
+            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+              Find your course
+            </span>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Course name, e.g. Torrey Pines"
+                value={courseQuery}
+                onChange={(e) => setCourseQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && courseQuery.trim().length >= 3) searchCourses();
+                }}
+              />
+              <Button
+                variant="secondary"
+                disabled={courseBusy || courseQuery.trim().length < 3}
+                onClick={searchCourses}
+              >
+                {courseBusy ? "…" : "Search"}
+              </Button>
+            </div>
+            {courseResults && (
+              <div className="mt-2 divide-y divide-ink/10 rounded-sm border border-ink/15 bg-paper">
+                {courseResults.map((c) => (
+                  <button
+                    key={c.id}
+                    className="block w-full px-3 py-2.5 text-left transition-colors hover:bg-linen/50"
+                    disabled={courseBusy}
+                    onClick={() => applyCourse(c)}
+                  >
+                    <span className="font-semibold">{c.name}</span>
+                    {c.locality && <span className="ml-2 text-[13px] text-putty">{c.locality}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+            {courseMsg && <p className="mt-2 text-[13px] text-putty">{courseMsg}</p>}
+            <p className="mt-1.5 text-[11px] text-putty/80">
+              Scorecard data from OpenStreetMap — free, but not every course is mapped. You can always edit below.
+            </p>
+          </div>
+
           <div className="flex gap-2">
             {([9, 18] as const).map((n) => (
               <Button
@@ -409,25 +599,20 @@ export default function NewEventPage() {
             </Button>
           </Card>
 
-          {format === "best_ball" && (
-            <Card>
+          <Card>
+            <label className="block">
               <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
-                Best N net scores count per hole
+                Tournament rules / notes (optional)
               </span>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4].map((n) => (
-                  <Button
-                    key={n}
-                    variant={countBestN === n ? "primary" : "secondary"}
-                    className="flex-1"
-                    onClick={() => setCountBestN(n)}
-                  >
-                    {n}
-                  </Button>
-                ))}
-              </div>
-            </Card>
-          )}
+              <textarea
+                rows={4}
+                placeholder={"Shown to every player on the leaderboard.\ne.g. Lift, clean and place. Max score triple bogey. Gimmes inside the leather."}
+                className="w-full rounded-sm border border-ink/20 bg-paper px-3 py-3 text-base text-ink placeholder:text-putty/70 focus:border-brass focus:outline-none"
+                value={rulesNotes}
+                onChange={(e) => setRulesNotes(e.target.value)}
+              />
+            </label>
+          </Card>
         </div>
       )}
 
@@ -448,6 +633,7 @@ export default function NewEventPage() {
           {contests.filter((c) => c.name.trim()).length > 0 && (
             <Row label="Contests" value={contests.filter((c) => c.name.trim()).map((c) => `${c.name} ($${c.prizeAmount})`).join(", ")} />
           )}
+          {rulesNotes.trim() && <Row label="Rules" value={rulesNotes.trim()} />}
           <p className="pt-1 text-[13px] leading-relaxed text-putty">
             After you create the event you&apos;ll get an organizer PIN and a private link for each
             team. Scoring opens immediately.

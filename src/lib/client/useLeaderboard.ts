@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 export interface LeaderboardData {
-  event: { name: string; format: string; status: string };
+  event: { name: string; format: string; status: string; rulesNotes?: string | null };
   generatedAt: string;
   pot: number;
   payoutsFinal: boolean;

@@ -89,6 +89,7 @@ export async function PUT(
   const update: Record<string, unknown> = {};
   if (parsed.data.name !== undefined) update.name = parsed.data.name;
   if (parsed.data.status !== undefined) update.status = parsed.data.status;
+  if (parsed.data.format !== undefined) update.format = parsed.data.format;
   if (parsed.data.config !== undefined) update.config = parsed.data.config;
 
   const { error } = await db().from("events").update(update).eq("id", event.id);

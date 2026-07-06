@@ -79,6 +79,7 @@ export async function GET(
         name: event.name,
         format: event.format,
         status: event.status,
+        rulesNotes: config.rulesNotes ?? null,
       },
       generatedAt: new Date().toISOString(),
       pot,
