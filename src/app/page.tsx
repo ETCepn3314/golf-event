@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Pennant } from "@/components/ui";
+import { YourEvents } from "@/components/YourEvents";
 
 const STEPS = [
   {
@@ -53,7 +54,9 @@ export default function Home() {
 
       {/* How it works */}
       <section className="mx-auto w-full max-w-md flex-1 px-6 py-12">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-putty">
+        <YourEvents />
+
+        <div className="mt-10 text-[11px] font-semibold uppercase tracking-[0.24em] text-putty">
           How it works
         </div>
         <div className="mt-6">

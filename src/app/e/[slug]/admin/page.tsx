@@ -2,6 +2,8 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import { Button, Card, Input, PageShell } from "@/components/ui";
+import { EventNav } from "@/components/EventNav";
+import { rememberEvent } from "@/lib/client/recentEvents";
 
 interface EventConfig {
   entryFeePerTeam?: number;
@@ -63,6 +65,7 @@ export default function AdminPage({
       const teamsJson = await teamsRes.json();
       setInfo(infoJson);
       setTeams(teamsJson.teams);
+      rememberEvent({ slug, name: infoJson.event.name });
       if (lbRes.ok) {
         const lb = await lbRes.json();
         const map: Record<string, number> = {};
@@ -198,6 +201,7 @@ export default function AdminPage({
 
   return (
     <PageShell title="Organizer dashboard" subtitle={info.event.name}>
+      <EventNav slug={slug} active="admin" />
       {notice && (
         <p className="mb-4 rounded-sm border border-brass/40 bg-brass/10 p-3 text-sm text-ink">{notice}</p>
       )}

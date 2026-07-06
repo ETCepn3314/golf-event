@@ -1,6 +1,8 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { EventNav } from "@/components/EventNav";
+import { rememberEvent } from "@/lib/client/recentEvents";
 import {
   formatMoney,
   formatVsPar,
@@ -23,6 +25,10 @@ export default function LeaderboardPage({
     }, 1000);
     return () => clearInterval(t);
   }, [lastUpdated]);
+
+  useEffect(() => {
+    if (data?.event.name) rememberEvent({ slug, name: data.event.name });
+  }, [slug, data?.event.name]);
 
   if (error) {
     return (
@@ -51,6 +57,9 @@ export default function LeaderboardPage({
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-3 py-6 sm:px-4">
+      <div className="px-1">
+        <EventNav slug={slug} active="board" />
+      </div>
       <header className="mb-5 px-1">
         <div className="flex items-start justify-between gap-3">
           <div>

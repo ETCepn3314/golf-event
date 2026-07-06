@@ -1,6 +1,8 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect } from "react";
+import { EventNav } from "@/components/EventNav";
+import { rememberEvent } from "@/lib/client/recentEvents";
 import { formatMoney, useLeaderboard } from "@/lib/client/useLeaderboard";
 
 export default function MoneyPage({
@@ -10,6 +12,10 @@ export default function MoneyPage({
 }) {
   const { slug } = use(params);
   const { data, error } = useLeaderboard(slug, 15000);
+
+  useEffect(() => {
+    if (data?.event.name) rememberEvent({ slug, name: data.event.name });
+  }, [slug, data?.event.name]);
 
   if (error) {
     return (
@@ -34,6 +40,7 @@ export default function MoneyPage({
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-7">
+      <EventNav slug={slug} active="money" />
       <header className="mb-6">
         <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-putty">
           Settlement

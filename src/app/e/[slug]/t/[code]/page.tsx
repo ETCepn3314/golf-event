@@ -1,6 +1,8 @@
 "use client";
 
 import { use, useCallback, useEffect, useRef, useState } from "react";
+import { EventNav } from "@/components/EventNav";
+import { rememberEvent } from "@/lib/client/recentEvents";
 import {
   enqueue,
   enqueueLock,
@@ -61,6 +63,12 @@ export default function ScoreEntryPage({
       })
       .then((data) => {
         setInfo(data);
+        rememberEvent({
+          slug,
+          name: data.event.name,
+          teamCode: code,
+          teamName: data.team.name,
+        });
         // Server locks + any locks still queued locally.
         setLockedHoles(() => {
           const merged = [
@@ -211,6 +219,7 @@ export default function ScoreEntryPage({
       </header>
 
       <div className="flex flex-1 flex-col px-4 py-4">
+        <EventNav slug={slug} active="score" />
         {finalized && (
           <div className="mb-3 rounded-sm border border-brass/40 bg-brass/10 p-3 text-center text-[13px] font-semibold uppercase tracking-[0.12em] text-ink">
             Event finalized — scores are locked
