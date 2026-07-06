@@ -55,15 +55,25 @@ export function Input({
 export function PageShell({
   title,
   subtitle,
+  back,
   children,
 }: {
   title: string;
   subtitle?: string;
+  back?: { href: string; label: string };
   children: ReactNode;
 }) {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
       <header className="mb-6">
+        {back && (
+          <a
+            href={back.href}
+            className="mb-2 inline-block text-[11px] font-semibold uppercase tracking-[0.16em] text-putty transition-colors hover:text-ink"
+          >
+            ← {back.label}
+          </a>
+        )}
         <h1 className="font-display text-[2rem] leading-tight font-semibold text-pine">{title}</h1>
         {subtitle && (
           <p className="mt-1.5 text-sm text-putty">{subtitle}</p>

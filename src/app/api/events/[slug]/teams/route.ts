@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateJoinCode } from "@/lib/codes";
-import { isOrganizer, jsonError, loadEvent } from "@/lib/api";
+import { isOrganizer, jsonError, loadEvent, lockedHolesFor } from "@/lib/api";
 import { upsertTeamSchema } from "@/lib/validation";
 
 /** Organizer: list teams incl. join codes (for the admin/share screens). */
@@ -20,16 +20,19 @@ export async function GET(
     .eq("event_id", event.id)
     .order("sort_order");
 
-  return NextResponse.json({
-    teams: (teams ?? []).map((t) => ({
+  const withLocks = await Promise.all(
+    (teams ?? []).map(async (t) => ({
       id: t.id,
       name: t.name,
       joinCode: t.join_code,
+      lockedHoles: await lockedHolesFor(t.id),
       players: (t.players ?? [])
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((p) => ({ id: p.id, name: p.name, handicap: Number(p.handicap) })),
-    })),
-  });
+    }))
+  );
+
+  return NextResponse.json({ teams: withLocks });
 }
 
 /** Organizer: add a team (and its players) to an existing event. */

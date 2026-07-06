@@ -55,6 +55,14 @@ create unique index scores_team_hole   on scores(team_id, hole_number)   where p
 create unique index scores_player_hole on scores(player_id, hole_number) where player_id is not null;
 create index scores_event on scores(event_id);
 
+-- A team's scores for a hole become read-only once locked (organizer can unlock).
+create table hole_locks (
+  team_id     uuid not null references teams(id) on delete cascade,
+  hole_number int  not null check (hole_number between 1 and 18),
+  locked_at   timestamptz not null default now(),
+  primary key (team_id, hole_number)
+);
+
 create table contests (
   id           uuid primary key default gen_random_uuid(),
   event_id     uuid not null references events(id) on delete cascade,
@@ -68,5 +76,6 @@ alter table events   enable row level security;
 alter table holes    enable row level security;
 alter table teams    enable row level security;
 alter table players  enable row level security;
-alter table scores   enable row level security;
-alter table contests enable row level security;
+alter table scores     enable row level security;
+alter table hole_locks enable row level security;
+alter table contests   enable row level security;

@@ -87,10 +87,13 @@ export const submitScoresSchema = z.object({
         strokes: z.number().int().min(1).max(20).nullable(), // null clears a score
       })
     )
-    .min(1)
-    .max(90),
+    .max(90), // may be empty when only locking/unlocking holes
   /** Organizer corrections specify the team explicitly. */
   teamId: z.string().uuid().optional(),
+  /** Holes to lock after applying the entries (team or organizer). */
+  lockHoles: z.array(z.number().int().min(1).max(18)).max(18).optional(),
+  /** Holes to unlock (organizer only). */
+  unlockHoles: z.array(z.number().int().min(1).max(18)).max(18).optional(),
 });
 
 export const setContestWinnerSchema = z.object({

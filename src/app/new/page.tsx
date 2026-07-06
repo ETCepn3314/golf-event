@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button, Card, Input, PageShell } from "@/components/ui";
+import { rememberEvent } from "@/lib/client/recentEvents";
 
 type Format = "scramble" | "stroke" | "best_ball" | "stableford";
 
@@ -190,6 +191,7 @@ export default function NewEventPage() {
       }));
       if (!res.ok) throw new Error(json.error ?? "Failed to create event");
       localStorage.setItem(`org-pin-${json.slug}`, json.organizerPin);
+      rememberEvent({ slug: json.slug, name });
       setCreated(json);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -203,7 +205,11 @@ export default function NewEventPage() {
   const steps = ["Event", "Course", "Teams", "Money", "Review"];
 
   return (
-    <PageShell title="Create an event" subtitle={`Step ${step + 1} of ${steps.length} — ${steps[step]}`}>
+    <PageShell
+      title="Create an event"
+      subtitle={`Step ${step + 1} of ${steps.length} — ${steps[step]}`}
+      back={{ href: "/", label: "Home" }}
+    >
       <div className="mb-5 flex gap-1">
         {steps.map((s, i) => (
           <div

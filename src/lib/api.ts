@@ -33,6 +33,20 @@ export function isOrganizer(req: Request, event: EventRecord): boolean {
   return !!pin && pin === event.organizer_pin;
 }
 
+/**
+ * Hole numbers locked for a team. Defensive: if the hole_locks table doesn't
+ * exist yet (migration not run), behave as if nothing is locked so the rest of
+ * the app keeps working.
+ */
+export async function lockedHolesFor(teamId: string): Promise<number[]> {
+  const { data, error } = await db()
+    .from("hole_locks")
+    .select("hole_number")
+    .eq("team_id", teamId);
+  if (error || !data) return [];
+  return data.map((r) => r.hole_number);
+}
+
 /** Returns the team row for the x-team-code header, or null if invalid. */
 export async function teamFromCode(
   req: Request,
