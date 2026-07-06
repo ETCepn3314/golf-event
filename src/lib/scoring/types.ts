@@ -14,6 +14,8 @@ export interface EventConfig {
    * lowest key use the lowest key's value; diffs above the highest key score 0. */
   stableford?: { points: Record<string, number> };
   bestBall?: { countBestN: number; handicapAllowancePct: number };
+  /** Free-text local rules shown to players; not used by the scoring engine. */
+  rulesNotes?: string;
 }
 
 export interface Hole {

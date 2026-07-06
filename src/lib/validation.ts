@@ -18,6 +18,8 @@ export const eventConfigSchema = z.object({
       handicapAllowancePct: z.number().min(0).max(100).default(100),
     })
     .optional(),
+  /** Free-text local rules / notes, shown to all players on the leaderboard. */
+  rulesNotes: z.string().max(2000).optional(),
 });
 
 export const formatSchema = z.enum([
@@ -61,7 +63,12 @@ export const createEventSchema = z.object({
 export const updateEventSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   status: z.enum(["setup", "live", "final"]).optional(),
+  format: formatSchema.optional(),
   config: eventConfigSchema.optional(),
+});
+
+export const updateHolesSchema = z.object({
+  holes: z.array(holeSchema).min(1).max(18),
 });
 
 export const upsertTeamSchema = z.object({

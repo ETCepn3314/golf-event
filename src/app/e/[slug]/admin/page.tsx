@@ -3,13 +3,22 @@
 import { use, useCallback, useEffect, useState } from "react";
 import { Button, Card, Input, PageShell } from "@/components/ui";
 
+interface EventConfig {
+  entryFeePerTeam?: number;
+  payout?: { type: "percentage" | "fixed"; places: number[] };
+  holesToPlay?: number;
+  stableford?: { points: Record<string, number> };
+  bestBall?: { countBestN: number; handicapAllowancePct: number };
+  rulesNotes?: string;
+}
+
 interface EventInfo {
   event: {
     slug: string;
     name: string;
     format: string;
     status: "setup" | "live" | "final";
-    config: { entryFeePerTeam?: number };
+    config: EventConfig;
   };
   holes: { holeNumber: number; par: number; strokeIndex: number | null }[];
   contests: { id: string; name: string; prizeAmount: number; winnerName: string | null }[];
@@ -202,6 +211,17 @@ export default function AdminPage({
         )}
       </Card>
 
+      <EventSettings
+        key={`${info.event.name}|${info.event.format}|${JSON.stringify(info.event.config)}`}
+        slug={slug}
+        pin={pin}
+        info={info}
+        onSaved={(msg) => {
+          setNotice(msg);
+          load(pin!).catch(() => {});
+        }}
+      />
+
       {info.contests.length > 0 && (
         <Card className="mb-4 space-y-3">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.24em] text-putty">Contest winners</h2>
@@ -295,5 +315,321 @@ export default function AdminPage({
         </a>
       </div>
     </PageShell>
+  );
+}
+
+const FORMAT_OPTIONS = [
+  { id: "scramble", label: "Scramble" },
+  { id: "stroke", label: "Stroke play" },
+  { id: "best_ball", label: "Best ball (net)" },
+  { id: "stableford", label: "Stableford" },
+] as const;
+
+/** Editable event rules, payouts, and course — everything set in the wizard can be changed here. */
+function EventSettings({
+  slug,
+  pin,
+  info,
+  onSaved,
+}: {
+  slug: string;
+  pin: string;
+  info: EventInfo;
+  onSaved: (msg: string) => void;
+}) {
+  const cfg = info.event.config;
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(info.event.name);
+  const [format, setFormat] = useState(info.event.format);
+  const [entryFee, setEntryFee] = useState(String(cfg.entryFeePerTeam ?? 0));
+  const [payoutType, setPayoutType] = useState<"percentage" | "fixed">(
+    cfg.payout?.type ?? "percentage"
+  );
+  const [places, setPlaces] = useState<string[]>(
+    (cfg.payout?.places ?? [50, 30, 20]).map(String)
+  );
+  const [countBestN, setCountBestN] = useState(cfg.bestBall?.countBestN ?? 2);
+  const [allowancePct, setAllowancePct] = useState(
+    String(cfg.bestBall?.handicapAllowancePct ?? 100)
+  );
+  const [points, setPoints] = useState<Record<string, string>>(() => {
+    const table = cfg.stableford?.points ?? { "-3": 5, "-2": 4, "-1": 3, "0": 2, "1": 1, "2": 0 };
+    const fixed: Record<string, string> = {};
+    for (const k of ["-3", "-2", "-1", "0", "1", "2"]) {
+      fixed[k] = String(table[k] ?? 0);
+    }
+    return fixed;
+  });
+  const [rulesNotes, setRulesNotes] = useState(cfg.rulesNotes ?? "");
+  const [pars, setPars] = useState<number[]>(info.holes.map((h) => h.par));
+  const [sis, setSis] = useState<string[]>(
+    info.holes.map((h) => (h.strokeIndex ? String(h.strokeIndex) : ""))
+  );
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const needsSi = format === "best_ball" || format === "stableford";
+
+  async function save() {
+    setSaving(true);
+    setErr(null);
+    try {
+      const config = {
+        entryFeePerTeam: parseFloat(entryFee) || 0,
+        payout: {
+          type: payoutType,
+          places: places.map((p) => parseFloat(p) || 0).filter((_, i) => places[i] !== ""),
+        },
+        holesToPlay: cfg.holesToPlay ?? info.holes.length,
+        ...(format === "best_ball"
+          ? { bestBall: { countBestN, handicapAllowancePct: parseFloat(allowancePct) || 100 } }
+          : {}),
+        ...(format === "stableford"
+          ? {
+              stableford: {
+                points: Object.fromEntries(
+                  Object.entries(points).map(([k, v]) => [k, parseInt(v) || 0])
+                ),
+              },
+            }
+          : {}),
+        ...(rulesNotes.trim() ? { rulesNotes: rulesNotes.trim() } : {}),
+      };
+
+      const evRes = await fetch(`/api/events/${slug}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json", "x-org-pin": pin },
+        body: JSON.stringify({ name, format, config }),
+      });
+      if (!evRes.ok) {
+        const j = await evRes.json().catch(() => ({}));
+        throw new Error(j.error ?? "Could not save settings");
+      }
+
+      const holesRes = await fetch(`/api/events/${slug}/holes`, {
+        method: "PUT",
+        headers: { "content-type": "application/json", "x-org-pin": pin },
+        body: JSON.stringify({
+          holes: info.holes.map((h, i) => ({
+            holeNumber: h.holeNumber,
+            par: pars[i],
+            strokeIndex: parseInt(sis[i]) || null,
+          })),
+        }),
+      });
+      if (!holesRes.ok) {
+        const j = await holesRes.json().catch(() => ({}));
+        throw new Error(j.error ?? "Could not save the course");
+      }
+
+      onSaved("Event settings saved — the leaderboard reflects them immediately.");
+      setOpen(false);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card className="mb-4 !p-3">
+      <button className="flex w-full items-center justify-between px-1" onClick={() => setOpen(!open)}>
+        <span className="font-display text-lg font-semibold text-pine">Event settings</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-putty">
+          {open ? "Close" : "Rules · payouts · course"}
+        </span>
+      </button>
+
+      {open && (
+        <div className="mt-4 space-y-5 border-t border-ink/10 px-1 pt-4">
+          <Input label="Event name" value={name} onChange={(e) => setName(e.target.value)} />
+
+          <div>
+            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+              Format
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              {FORMAT_OPTIONS.map((f) => (
+                <Button
+                  key={f.id}
+                  variant={format === f.id ? "primary" : "secondary"}
+                  className="!py-2.5 !text-[11px]"
+                  onClick={() => setFormat(f.id)}
+                >
+                  {f.label}
+                </Button>
+              ))}
+            </div>
+            {format !== info.event.format && (
+              <p className="mt-1.5 text-[12px] text-clay">
+                Careful: changing the format after scores are entered can leave holes incomplete
+                (scramble records one team score; the other formats need every player).
+              </p>
+            )}
+          </div>
+
+          {format === "stableford" && (
+            <div>
+              <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+                Stableford points (net vs par)
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                {([["-3", "Albatross"], ["-2", "Eagle"], ["-1", "Birdie"], ["0", "Par"], ["1", "Bogey"], ["2", "Double"]] as const).map(([diff, label]) => (
+                  <label key={diff} className="block text-center">
+                    <span className="block text-[11px] text-putty">{label}</span>
+                    <input
+                      aria-label={`Points for ${label}`}
+                      inputMode="numeric"
+                      className="w-full rounded-sm border border-ink/20 bg-paper py-1.5 text-center font-semibold"
+                      value={points[diff]}
+                      onChange={(e) => setPoints({ ...points, [diff]: e.target.value })}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {format === "best_ball" && (
+            <div className="space-y-3">
+              <div>
+                <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+                  Best N net scores count per hole
+                </span>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4].map((n) => (
+                    <Button
+                      key={n}
+                      variant={countBestN === n ? "primary" : "secondary"}
+                      className="flex-1 !py-2"
+                      onClick={() => setCountBestN(n)}
+                    >
+                      {n}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <Input
+                label="Handicap allowance (%)"
+                inputMode="numeric"
+                value={allowancePct}
+                onChange={(e) => setAllowancePct(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Input
+              label="Entry fee per team ($)"
+              inputMode="decimal"
+              value={entryFee}
+              onChange={(e) => setEntryFee(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <Button
+                variant={payoutType === "percentage" ? "primary" : "secondary"}
+                className="flex-1 !py-2 !text-[11px]"
+                onClick={() => setPayoutType("percentage")}
+              >
+                % of purse
+              </Button>
+              <Button
+                variant={payoutType === "fixed" ? "primary" : "secondary"}
+                className="flex-1 !py-2 !text-[11px]"
+                onClick={() => setPayoutType("fixed")}
+              >
+                Fixed $
+              </Button>
+            </div>
+            {places.map((p, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="w-10 font-display text-base font-semibold text-pine">
+                  {["1st", "2nd", "3rd"][i] ?? `${i + 1}th`}
+                </span>
+                <Input
+                  inputMode="decimal"
+                  aria-label={`Payout for place ${i + 1}`}
+                  value={p}
+                  onChange={(e) => setPlaces(places.map((v, j) => (j === i ? e.target.value : v)))}
+                />
+                <Button
+                  variant="ghost"
+                  className="!px-2"
+                  aria-label={`Remove place ${i + 1}`}
+                  onClick={() => setPlaces(places.filter((_, j) => j !== i))}
+                >
+                  ✕
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="secondary"
+              className="w-full !py-2 !text-[11px]"
+              onClick={() => setPlaces([...places, ""])}
+            >
+              + Add place
+            </Button>
+          </div>
+
+          <div>
+            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+              Course — par{needsSi ? " and stroke index" : ""}
+            </span>
+            <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+              {info.holes.map((h, i) => (
+                <div key={h.holeNumber} className="rounded-sm border border-ink/10 bg-cream/60 p-2 text-center">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-putty">
+                    Hole {h.holeNumber}
+                  </div>
+                  <select
+                    aria-label={`Par for hole ${h.holeNumber}`}
+                    className="mt-0.5 w-full rounded border-0 bg-transparent text-center font-display text-xl font-semibold text-pine"
+                    value={pars[i]}
+                    onChange={(e) =>
+                      setPars(pars.map((p, j) => (j === i ? parseInt(e.target.value) : p)))
+                    }
+                  >
+                    {[3, 4, 5, 6].map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                  {needsSi && (
+                    <input
+                      aria-label={`Stroke index for hole ${h.holeNumber}`}
+                      className="mt-1 w-full rounded-sm border border-ink/15 bg-paper text-center text-sm"
+                      inputMode="numeric"
+                      value={sis[i]}
+                      onChange={(e) =>
+                        setSis(sis.map((s, j) => (j === i ? e.target.value : s)))
+                      }
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <label className="block">
+            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+              Tournament rules / notes (shown on the leaderboard)
+            </span>
+            <textarea
+              rows={4}
+              className="w-full rounded-sm border border-ink/20 bg-paper px-3 py-3 text-base text-ink placeholder:text-putty/70 focus:border-brass focus:outline-none"
+              placeholder="e.g. Lift, clean and place. Max score triple bogey."
+              value={rulesNotes}
+              onChange={(e) => setRulesNotes(e.target.value)}
+            />
+          </label>
+
+          {err && (
+            <p className="rounded-sm border border-clay/40 bg-clay/10 p-3 text-sm text-clay">{err}</p>
+          )}
+          <Button className="w-full" disabled={saving} onClick={save}>
+            {saving ? "Saving…" : "Save settings"}
+          </Button>
+        </div>
+      )}
+    </Card>
   );
 }
