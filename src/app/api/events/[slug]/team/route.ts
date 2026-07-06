@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { jsonError, loadEvent, teamFromCode } from "@/lib/api";
+import { jsonError, loadEvent, lockedHolesFor, teamFromCode } from "@/lib/api";
 
 /** Team identity + roster + this team's current scores, gated by x-team-code. */
 export async function GET(
@@ -14,7 +14,7 @@ export async function GET(
   const team = await teamFromCode(req, event);
   if (!team) return jsonError(403, "Valid team code required");
 
-  const [playersRes, scoresRes, holesRes] = await Promise.all([
+  const [playersRes, scoresRes, holesRes, lockedHoles] = await Promise.all([
     db()
       .from("players")
       .select("id, name, handicap, sort_order")
@@ -29,6 +29,7 @@ export async function GET(
       .select("hole_number, par, stroke_index")
       .eq("event_id", event.id)
       .order("hole_number"),
+    lockedHolesFor(team.id),
   ]);
 
   return NextResponse.json({
@@ -53,5 +54,6 @@ export async function GET(
       holeNumber: s.hole_number,
       strokes: s.strokes,
     })),
+    lockedHoles,
   });
 }

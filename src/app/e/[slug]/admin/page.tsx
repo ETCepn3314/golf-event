@@ -28,6 +28,7 @@ interface AdminTeam {
   id: string;
   name: string;
   joinCode: string;
+  lockedHoles: number[];
   players: { id: string; name: string; handicap: number }[];
 }
 
@@ -168,6 +169,23 @@ export default function AdminPage({
     });
   }
 
+  async function unlockHole(teamId: string, holeNumber: number) {
+    const res = await fetch(`/api/events/${slug}/scores`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-org-pin": pin! },
+      body: JSON.stringify({ teamId, entries: [], unlockHoles: [holeNumber] }),
+    });
+    if (res.ok) {
+      setTeams((prev) =>
+        prev.map((t) =>
+          t.id === teamId
+            ? { ...t, lockedHoles: t.lockedHoles.filter((h) => h !== holeNumber) }
+            : t
+        )
+      );
+    }
+  }
+
   async function saveContestWinner(contestId: string, winnerName: string) {
     await fetch(`/api/events/${slug}/contests/${contestId}`, {
       method: "PUT",
@@ -299,6 +317,28 @@ export default function AdminPage({
                     </table>
                   </div>
                   <p className="text-xs text-putty">Corrections save when you tap away from a box. Blank = no score.</p>
+                  {team.lockedHoles.length > 0 && (
+                    <div>
+                      <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+                        Locked holes — tap to unlock for the team
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {team.lockedHoles.map((h) => (
+                          <button
+                            key={h}
+                            onClick={() => {
+                              if (confirm(`Unlock hole ${h} so ${team.name} can edit it again?`)) {
+                                unlockHole(team.id, h);
+                              }
+                            }}
+                            className="rounded-sm bg-moss px-2.5 py-1.5 text-[12px] font-bold text-cream transition-colors hover:bg-clay"
+                          >
+                            {h} ✕
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </Card>

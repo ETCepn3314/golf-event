@@ -3,9 +3,13 @@
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import {
   enqueue,
+  enqueueLock,
   flushQueue,
+  loadLocalLocks,
   loadLocalScores,
+  loadLockQueue,
   loadQueue,
+  saveLocalLocks,
   saveLocalScores,
   scoreKey,
   type SyncState,
@@ -31,10 +35,13 @@ export default function ScoreEntryPage({
   );
   const [hole, setHole] = useState(1);
   const [sync, setSync] = useState<SyncState>("saved");
+  const [lockedHoles, setLockedHoles] = useState<number[]>(() =>
+    typeof window === "undefined" ? [] : loadLocalLocks(slug, code)
+  );
   const flushTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const doFlush = useCallback(async () => {
-    if (loadQueue(slug, code).length === 0) {
+    if (loadQueue(slug, code).length === 0 && loadLockQueue(slug, code).length === 0) {
       setSync("saved");
       return;
     }
@@ -54,6 +61,14 @@ export default function ScoreEntryPage({
       })
       .then((data) => {
         setInfo(data);
+        // Server locks + any locks still queued locally.
+        setLockedHoles(() => {
+          const merged = [
+            ...new Set([...(data.lockedHoles ?? []), ...loadLockQueue(slug, code)]),
+          ].sort((a, b) => a - b);
+          saveLocalLocks(slug, code, merged);
+          return merged;
+        });
         // Merge server scores under local ones (local edits win until flushed).
         setScores((local) => {
           const merged: Record<string, number> = {};
@@ -128,6 +143,8 @@ export default function ScoreEntryPage({
   const isTeamFormat = info.event.format === "scramble";
   const currentHole = info.holes.find((h) => h.holeNumber === hole) ?? info.holes[0];
   const finalized = info.event.status === "final";
+  const holeLocked = lockedHoles.includes(currentHole.holeNumber);
+  const readOnly = finalized || holeLocked;
 
   function setStrokes(playerId: string | null, value: number | null) {
     const key = scoreKey(playerId, currentHole.holeNumber);
@@ -152,6 +169,33 @@ export default function ScoreEntryPage({
     : info.players.map((p) => ({ playerId: p.id, label: p.name }));
 
   const holeIndex = info.holes.findIndex((h) => h.holeNumber === hole);
+  const holeComplete = rows.every(
+    (r) => scores[scoreKey(r.playerId, currentHole.holeNumber)] !== undefined
+  );
+
+  function lockHole() {
+    if (
+      !confirm(
+        `Lock in hole ${currentHole.holeNumber}? The scores can't be changed afterwards — only the organizer can correct a locked hole.`
+      )
+    ) {
+      return;
+    }
+    const n = currentHole.holeNumber;
+    setLockedHoles((prev) => {
+      const next = [...new Set([...prev, n])].sort((a, b) => a - b);
+      saveLocalLocks(slug, code, next);
+      return next;
+    });
+    enqueueLock(slug, code, n);
+    setSync("pending");
+    doFlush();
+    // Move on to the next hole that isn't locked yet.
+    const next = info!.holes.find(
+      (h) => h.holeNumber > n && !lockedHoles.includes(h.holeNumber)
+    );
+    if (next) setHole(next.holeNumber);
+  }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col">
@@ -189,8 +233,14 @@ export default function ScoreEntryPage({
               {currentHole.holeNumber}
             </div>
             <div className="mt-1 text-[12px] uppercase tracking-[0.14em] text-putty">
-              Par {currentHole.par}
-              {currentHole.strokeIndex ? ` · SI ${currentHole.strokeIndex}` : ""}
+              {holeLocked ? (
+                <span className="font-bold text-brass">Locked in</span>
+              ) : (
+                <>
+                  Par {currentHole.par}
+                  {currentHole.strokeIndex ? ` · SI ${currentHole.strokeIndex}` : ""}
+                </>
+              )}
             </div>
           </div>
           <button
@@ -221,7 +271,7 @@ export default function ScoreEntryPage({
                 <div className="flex items-center gap-3">
                   <button
                     className="h-16 w-16 shrink-0 rounded-sm border border-ink/15 bg-cream text-3xl font-semibold text-pine transition-colors active:bg-linen disabled:opacity-25"
-                    disabled={finalized || value === undefined || value <= 1}
+                    disabled={readOnly || value === undefined || value <= 1}
                     aria-label={`Decrease ${row.label} score`}
                     onClick={() => setStrokes(row.playerId, (value ?? currentHole.par) - 1)}
                   >
@@ -231,7 +281,7 @@ export default function ScoreEntryPage({
                     {value === undefined ? (
                       <button
                         className="w-full rounded-sm border border-dashed border-brass/60 py-3.5 text-[13px] font-semibold uppercase tracking-[0.14em] text-brass transition-colors active:bg-brass/10"
-                        disabled={finalized}
+                        disabled={readOnly}
                         onClick={() => setStrokes(row.playerId, currentHole.par)}
                       >
                         Tap for par {currentHole.par}
@@ -244,7 +294,7 @@ export default function ScoreEntryPage({
                   </div>
                   <button
                     className="h-16 w-16 shrink-0 rounded-sm border border-ink/15 bg-cream text-3xl font-semibold text-pine transition-colors active:bg-linen disabled:opacity-25"
-                    disabled={finalized || (value ?? 0) >= 20}
+                    disabled={readOnly || (value ?? 0) >= 20}
                     aria-label={`Increase ${row.label} score`}
                     onClick={() => setStrokes(row.playerId, (value ?? currentHole.par - 1) + 1)}
                   >
@@ -256,12 +306,27 @@ export default function ScoreEntryPage({
           })}
         </div>
 
+        {!readOnly && holeComplete && (
+          <button
+            onClick={lockHole}
+            className="mt-4 w-full rounded-sm border-2 border-pine bg-paper py-3.5 text-[13px] font-bold uppercase tracking-[0.16em] text-pine transition-colors active:bg-linen"
+          >
+            Lock in hole {currentHole.holeNumber}
+          </button>
+        )}
+        {holeLocked && (
+          <p className="mt-4 rounded-sm border border-brass/40 bg-brass/10 p-3 text-center text-[12px] font-semibold uppercase tracking-[0.12em] text-ink">
+            Hole {currentHole.holeNumber} is locked in — ask the organizer to correct it
+          </p>
+        )}
+
         {/* Hole navigator */}
         <nav className="mt-5 grid grid-cols-9 gap-1">
           {info.holes.map((h) => {
             const complete = rows.every(
               (r) => scores[scoreKey(r.playerId, h.holeNumber)] !== undefined
             );
+            const locked = lockedHoles.includes(h.holeNumber);
             return (
               <button
                 key={h.holeNumber}
@@ -269,12 +334,24 @@ export default function ScoreEntryPage({
                 className={`rounded-sm py-2 text-[13px] font-semibold tabular-nums transition-colors ${
                   h.holeNumber === hole
                     ? "bg-pine text-cream"
-                    : complete
-                      ? "bg-linen text-ink"
-                      : "border border-ink/10 bg-paper text-putty"
+                    : locked
+                      ? "bg-moss/90 text-cream/80"
+                      : complete
+                        ? "bg-linen text-ink"
+                        : "border border-ink/10 bg-paper text-putty"
                 }`}
               >
-                {h.holeNumber}
+                {locked ? (
+                  <span className="inline-flex items-center gap-0.5">
+                    <svg viewBox="0 0 10 12" className="h-2.5 w-2.5 fill-current" aria-hidden="true">
+                      <rect x="1" y="5" width="8" height="6" rx="1" />
+                      <path d="M3 5V3.5a2 2 0 0 1 4 0V5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                    </svg>
+                    {h.holeNumber}
+                  </span>
+                ) : (
+                  h.holeNumber
+                )}
               </button>
             );
           })}
