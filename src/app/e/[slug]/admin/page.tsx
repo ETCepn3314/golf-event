@@ -68,7 +68,7 @@ export default function AdminPage({
       const [infoRes, teamsRes, lbRes] = await Promise.all([
         fetch(`/api/events/${slug}`, { headers: { "x-org-pin": candidatePin } }),
         fetch(`/api/events/${slug}/teams`, { headers: { "x-org-pin": candidatePin } }),
-        fetch(`/api/events/${slug}/leaderboard`),
+        fetch(`/api/events/${slug}/leaderboard`, { headers: { "x-org-pin": candidatePin } }),
       ]);
       if (teamsRes.status === 403) {
         throw new Error("Wrong PIN for this event.");

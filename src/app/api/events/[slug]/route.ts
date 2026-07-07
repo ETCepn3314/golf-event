@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { isOrganizer, jsonError, loadEvent } from "@/lib/api";
+import { isOrganizer, jsonError, loadEvent, teamFromCode } from "@/lib/api";
 import { updateEventSchema } from "@/lib/validation";
 
 export async function GET(
@@ -10,6 +10,13 @@ export async function GET(
   const { slug } = await params;
   const event = await loadEvent(slug);
   if (!event) return jsonError(404, "Event not found");
+
+  const organizerView = isOrganizer(req, event);
+  // Private event: full details are only for the organizer or a member holding
+  // a valid team join code.
+  if (!organizerView && (await teamFromCode(req, event)) === null) {
+    return jsonError(403, "This event is private — open it from your team link.");
+  }
 
   const [holes, teams, players, contests] = await Promise.all([
     db()
@@ -38,8 +45,6 @@ export async function GET(
       .eq("event_id", event.id),
   ]);
 
-  const organizer = isOrganizer(req, event);
-
   return NextResponse.json({
     event: {
       slug: event.slug,
@@ -67,7 +72,7 @@ export async function GET(
       prizeAmount: Number(c.prize_amount),
       winnerName: c.winner_name,
     })),
-    ...(organizer ? { organizer: true } : {}),
+    ...(organizerView ? { organizer: true } : {}),
   });
 }
 

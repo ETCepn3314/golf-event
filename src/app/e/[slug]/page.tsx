@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { EventNav } from "@/components/EventNav";
 import { BrandLogo } from "@/components/ui";
+import { PrivateEventGate } from "@/components/PrivateEventGate";
 import { brandingStyle } from "@/lib/branding";
 import { rememberEvent } from "@/lib/client/recentEvents";
 import {
@@ -17,7 +18,7 @@ export default function LeaderboardPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
-  const { data, error, lastUpdated } = useLeaderboard(slug);
+  const { data, error, errorStatus, lastUpdated } = useLeaderboard(slug);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [ago, setAgo] = useState("");
 
@@ -32,6 +33,7 @@ export default function LeaderboardPage({
     if (data?.event.name) rememberEvent({ slug, name: data.event.name });
   }, [slug, data?.event.name]);
 
+  if (errorStatus === 403) return <PrivateEventGate slug={slug} />;
   if (error) {
     return (
       <main className="mx-auto max-w-md p-8 text-center">

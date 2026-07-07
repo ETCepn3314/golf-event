@@ -54,6 +54,25 @@ export function organizerPinFor(slug: string): string | null {
   return localStorage.getItem(`org-pin-${slug}`);
 }
 
+/** The team join code this device holds for an event, if it opened a team link. */
+export function teamCodeFor(slug: string): string | null {
+  return listRecentEvents().find((e) => e.slug === slug)?.teamCode ?? null;
+}
+
+/**
+ * Request headers proving this device may view a (now private) event: the
+ * organizer PIN and/or a team join code. Events are only visible to holders of
+ * one of these.
+ */
+export function eventAuthHeaders(slug: string): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const pin = organizerPinFor(slug);
+  if (pin) headers["x-org-pin"] = pin;
+  const code = teamCodeFor(slug);
+  if (code) headers["x-team-code"] = code;
+  return headers;
+}
+
 /**
  * Parse anything a user might paste — a leaderboard link, a team link, or a
  * bare slug — into a route within this app. Returns null if unrecognizable.

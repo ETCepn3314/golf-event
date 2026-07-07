@@ -3,6 +3,7 @@
 import { use, useEffect } from "react";
 import { EventNav } from "@/components/EventNav";
 import { BrandLogo } from "@/components/ui";
+import { PrivateEventGate } from "@/components/PrivateEventGate";
 import { brandingStyle } from "@/lib/branding";
 import { rememberEvent } from "@/lib/client/recentEvents";
 import { formatMoney, useLeaderboard } from "@/lib/client/useLeaderboard";
@@ -13,12 +14,13 @@ export default function MoneyPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
-  const { data, error } = useLeaderboard(slug, 15000);
+  const { data, error, errorStatus } = useLeaderboard(slug, 15000);
 
   useEffect(() => {
     if (data?.event.name) rememberEvent({ slug, name: data.event.name });
   }, [slug, data?.event.name]);
 
+  if (errorStatus === 403) return <PrivateEventGate slug={slug} />;
   if (error) {
     return (
       <main className="mx-auto max-w-md p-8 text-center">

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Branding } from "@/lib/branding";
+import { eventAuthHeaders } from "@/lib/client/recentEvents";
 
 export interface LeaderboardData {
   event: {
@@ -39,6 +40,7 @@ export interface LeaderboardData {
 export function useLeaderboard(slug: string, intervalMs = 10000) {
   const [data, setData] = useState<LeaderboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -46,15 +48,19 @@ export function useLeaderboard(slug: string, intervalMs = 10000) {
     let cancelled = false;
     async function poll() {
       try {
-        const res = await fetch(`/api/events/${slug}/leaderboard`);
+        const res = await fetch(`/api/events/${slug}/leaderboard`, {
+          headers: eventAuthHeaders(slug),
+        });
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
+          if (!cancelled) setErrorStatus(res.status);
           throw new Error(j.error ?? `Error ${res.status}`);
         }
         const json = await res.json();
         if (!cancelled) {
           setData(json);
           setError(null);
+          setErrorStatus(null);
           setLastUpdated(Date.now());
         }
       } catch (e) {
@@ -73,7 +79,7 @@ export function useLeaderboard(slug: string, intervalMs = 10000) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, intervalMs]);
 
-  return { data, error, lastUpdated };
+  return { data, error, errorStatus, lastUpdated };
 }
 
 export function formatVsPar(vsPar: number | null): string {

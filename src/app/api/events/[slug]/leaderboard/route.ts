@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { jsonError, loadEvent } from "@/lib/api";
+import { isOrganizer, jsonError, loadEvent, teamFromCode } from "@/lib/api";
 import { computeLeaderboard, computePayouts } from "@/lib/scoring";
 import { eventConfigSchema } from "@/lib/validation";
 import type { EventConfig, RawScore } from "@/lib/scoring";
@@ -12,6 +12,13 @@ export async function GET(
   const { slug } = await params;
   const event = await loadEvent(slug);
   if (!event) return jsonError(404, "Event not found");
+
+  // Private event: only the organizer or a member with a valid team join code
+  // may view the board. The slug alone is not enough.
+  const allowed = isOrganizer(req, event) || (await teamFromCode(req, event)) !== null;
+  if (!allowed) {
+    return jsonError(403, "This event is private — open it from your team link.");
+  }
 
   const config = eventConfigSchema.parse(event.config ?? {}) as EventConfig;
 
@@ -101,8 +108,9 @@ export async function GET(
     },
     {
       headers: {
-        // Let Vercel's CDN absorb polling from many phones.
-        "Cache-Control": "public, s-maxage=5, stale-while-revalidate=10",
+        // Access-controlled now, so it must not sit in a shared CDN cache where
+        // it could be served to someone without a code. Per-device only.
+        "Cache-Control": "private, no-store",
       },
     }
   );
