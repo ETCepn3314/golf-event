@@ -2,6 +2,8 @@
 
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { EventNav } from "@/components/EventNav";
+import { BrandLogo } from "@/components/ui";
+import { brandingStyle, type Branding } from "@/lib/branding";
 import { rememberEvent } from "@/lib/client/recentEvents";
 import {
   enqueue,
@@ -18,7 +20,7 @@ import {
 } from "@/lib/client/scoreSync";
 
 interface TeamInfo {
-  event: { name: string; format: string; status: string };
+  event: { name: string; format: string; status: string; branding?: Branding | null };
   team: { id: string; name: string };
   players: { id: string; name: string; handicap: number }[];
   holes: { holeNumber: number; par: number; strokeIndex: number | null }[];
@@ -206,14 +208,24 @@ export default function ScoreEntryPage({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col">
+    <main
+      className="mx-auto flex min-h-screen w-full max-w-md flex-col"
+      style={brandingStyle(info.event.branding)}
+    >
       {/* Team masthead */}
-      <header className="board-texture flex items-center justify-between bg-pine px-4 py-3.5 text-cream">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.24em] text-cream/55">
-            {info.event.name}
+      <header className="board-texture flex items-center justify-between gap-3 bg-pine px-4 py-3.5 text-cream">
+        <div className="flex min-w-0 items-center gap-3">
+          {info.event.branding?.logoUrl && (
+            <BrandLogo url={info.event.branding.logoUrl} className="h-9 w-9 shrink-0" />
+          )}
+          <div className="min-w-0">
+            <div className="truncate text-[10px] uppercase tracking-[0.24em] text-cream/55">
+              {info.event.name}
+            </div>
+            <div className="truncate font-display text-lg font-semibold leading-tight">
+              {info.team.name}
+            </div>
           </div>
-          <div className="font-display text-lg font-semibold leading-tight">{info.team.name}</div>
         </div>
         <SyncPill state={sync} />
       </header>

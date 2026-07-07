@@ -3,6 +3,13 @@
 import { use, useCallback, useEffect, useState } from "react";
 import { Button, Card, Input, PageShell } from "@/components/ui";
 import { EventNav } from "@/components/EventNav";
+import {
+  BrandingEditor,
+  type BrandingDraft,
+  brandingConfigToDraft,
+  brandingDraftToConfig,
+} from "@/components/BrandingEditor";
+import { brandingStyle } from "@/lib/branding";
 import { rememberEvent } from "@/lib/client/recentEvents";
 
 interface EventConfig {
@@ -12,6 +19,12 @@ interface EventConfig {
   stableford?: { points: Record<string, number> };
   bestBall?: { countBestN: number; handicapAllowancePct: number };
   rulesNotes?: string;
+  branding?: {
+    themeId?: string;
+    brandColor?: string;
+    accentColor?: string;
+    logoUrl?: string;
+  };
 }
 
 interface EventInfo {
@@ -200,7 +213,11 @@ export default function AdminPage({
   const isScramble = info.event.format === "scramble";
 
   return (
-    <PageShell title="Organizer dashboard" subtitle={info.event.name}>
+    <PageShell
+      title="Organizer dashboard"
+      subtitle={info.event.name}
+      style={brandingStyle(info.event.config.branding)}
+    >
       <EventNav slug={slug} active="admin" />
       {notice && (
         <p className="mb-4 rounded-sm border border-brass/40 bg-brass/10 p-3 text-sm text-ink">{notice}</p>
@@ -405,6 +422,7 @@ function EventSettings({
     return fixed;
   });
   const [rulesNotes, setRulesNotes] = useState(cfg.rulesNotes ?? "");
+  const [branding, setBranding] = useState<BrandingDraft>(brandingConfigToDraft(cfg.branding));
   const [pars, setPars] = useState<number[]>(info.holes.map((h) => h.par));
   const [sis, setSis] = useState<string[]>(
     info.holes.map((h) => (h.strokeIndex ? String(h.strokeIndex) : ""))
@@ -438,6 +456,7 @@ function EventSettings({
             }
           : {}),
         ...(rulesNotes.trim() ? { rulesNotes: rulesNotes.trim() } : {}),
+        ...(brandingDraftToConfig(branding) ? { branding: brandingDraftToConfig(branding) } : {}),
       };
 
       const evRes = await fetch(`/api/events/${slug}`, {
@@ -651,6 +670,13 @@ function EventSettings({
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="border-t border-ink/10 pt-4">
+            <span className="mb-3 block text-[11px] font-semibold uppercase tracking-[0.14em] text-putty">
+              Branding — colors &amp; logo
+            </span>
+            <BrandingEditor value={branding} onChange={setBranding} />
           </div>
 
           <label className="block">

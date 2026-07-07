@@ -2,6 +2,8 @@
 
 import { use, useEffect } from "react";
 import { EventNav } from "@/components/EventNav";
+import { BrandLogo } from "@/components/ui";
+import { brandingStyle } from "@/lib/branding";
 import { rememberEvent } from "@/lib/client/recentEvents";
 import { formatMoney, useLeaderboard } from "@/lib/client/useLeaderboard";
 
@@ -39,8 +41,16 @@ export default function MoneyPage({
   const contestTotal = data.contests.reduce((a, c) => a + c.prizeAmount, 0);
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-7">
+    <main
+      className="mx-auto w-full max-w-2xl flex-1 px-4 py-7"
+      style={brandingStyle(data.event.branding)}
+    >
       <EventNav slug={slug} active="money" />
+      {data.event.branding?.logoUrl && (
+        <div className="mb-4 flex justify-center">
+          <BrandLogo url={data.event.branding.logoUrl} className="h-14 max-w-[55%]" />
+        </div>
+      )}
       <header className="mb-6">
         <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-putty">
           Settlement

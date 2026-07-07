@@ -37,6 +37,7 @@ export async function GET(
       name: event.name,
       format: event.format,
       status: event.status,
+      branding: (event.config as { branding?: unknown })?.branding ?? null,
     },
     team: { id: team.id, name: team.name },
     players: (playersRes.data ?? []).map((p) => ({

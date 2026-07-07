@@ -16,6 +16,13 @@ export interface EventConfig {
   bestBall?: { countBestN: number; handicapAllowancePct: number };
   /** Free-text local rules shown to players; not used by the scoring engine. */
   rulesNotes?: string;
+  /** Per-event visual theming (colors + logo); not used by the scoring engine. */
+  branding?: {
+    themeId?: string;
+    brandColor?: string;
+    accentColor?: string;
+    logoUrl?: string;
+  };
 }
 
 export interface Hole {

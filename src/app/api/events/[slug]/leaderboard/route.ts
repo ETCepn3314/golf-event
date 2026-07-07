@@ -80,6 +80,7 @@ export async function GET(
         format: event.format,
         status: event.status,
         rulesNotes: config.rulesNotes ?? null,
+        branding: config.branding ?? null,
       },
       generatedAt: new Date().toISOString(),
       pot,

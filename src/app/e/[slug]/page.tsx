@@ -2,6 +2,8 @@
 
 import { use, useEffect, useState } from "react";
 import { EventNav } from "@/components/EventNav";
+import { BrandLogo } from "@/components/ui";
+import { brandingStyle } from "@/lib/branding";
 import { rememberEvent } from "@/lib/client/recentEvents";
 import {
   formatMoney,
@@ -56,10 +58,18 @@ export default function LeaderboardPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-3 py-6 sm:px-4">
+    <main
+      className="mx-auto w-full max-w-2xl flex-1 px-3 py-6 sm:px-4"
+      style={brandingStyle(data.event.branding)}
+    >
       <div className="px-1">
         <EventNav slug={slug} active="board" />
       </div>
+      {data.event.branding?.logoUrl && (
+        <div className="mb-4 flex justify-center px-1">
+          <BrandLogo url={data.event.branding.logoUrl} className="h-16 max-w-[62%]" />
+        </div>
+      )}
       <header className="mb-5 px-1">
         <div className="flex items-start justify-between gap-3">
           <div>

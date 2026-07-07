@@ -2,6 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { Button, Card, Input, PageShell } from "@/components/ui";
+import {
+  BrandingEditor,
+  type BrandingDraft,
+  brandingDraftToConfig,
+  defaultBrandingDraft,
+} from "@/components/BrandingEditor";
 import { rememberEvent } from "@/lib/client/recentEvents";
 
 type Format = "scramble" | "stroke" | "best_ball" | "stableford";
@@ -54,6 +60,7 @@ export default function NewEventPage() {
   });
   const [rulesNotes, setRulesNotes] = useState("");
   const [contests, setContests] = useState<{ name: string; prizeAmount: string }[]>([]);
+  const [branding, setBranding] = useState<BrandingDraft>(defaultBrandingDraft());
 
   const [courseQuery, setCourseQuery] = useState("");
   const [courseResults, setCourseResults] = useState<
@@ -165,6 +172,9 @@ export default function NewEventPage() {
               }
             : {}),
           ...(rulesNotes.trim() ? { rulesNotes: rulesNotes.trim() } : {}),
+          ...(brandingDraftToConfig(branding)
+            ? { branding: brandingDraftToConfig(branding) }
+            : {}),
         },
         holes: holeNumbers.map((n) => ({
           holeNumber: n,
@@ -202,7 +212,8 @@ export default function NewEventPage() {
 
   if (created) return <ShareScreen created={created} eventName={name} />;
 
-  const steps = ["Event", "Course", "Teams", "Money", "Review"];
+  const steps = ["Event", "Course", "Teams", "Money", "Brand", "Review"];
+  const lastStep = steps.length - 1;
 
   return (
     <PageShell
@@ -623,6 +634,16 @@ export default function NewEventPage() {
       )}
 
       {step === 4 && (
+        <Card>
+          <p className="mb-4 text-[13px] leading-relaxed text-putty">
+            Give the event your own look. This is what players see on the live board and their
+            scorecards — pick a theme or your own colors, and add a logo if you have one.
+          </p>
+          <BrandingEditor value={branding} onChange={setBranding} />
+        </Card>
+      )}
+
+      {step === 5 && (
         <Card className="space-y-3 text-sm">
           <Row label="Event" value={`${name || "(unnamed)"} ${eventDate ? `— ${eventDate}` : ""}`} />
           <Row label="Format" value={FORMATS.find((f) => f.id === format)!.label} />
@@ -640,6 +661,10 @@ export default function NewEventPage() {
             <Row label="Contests" value={contests.filter((c) => c.name.trim()).map((c) => `${c.name} ($${c.prizeAmount})`).join(", ")} />
           )}
           {rulesNotes.trim() && <Row label="Rules" value={rulesNotes.trim()} />}
+          <Row
+            label="Theme"
+            value={`${branding.themeId === "custom" ? "Custom colors" : (branding.themeId ?? "Heritage green")}${branding.logoUrl.trim() ? " · logo" : ""}`}
+          />
           <p className="pt-1 text-[13px] leading-relaxed text-putty">
             After you create the event you&apos;ll get an organizer PIN and a private link for each
             team. Scoring opens immediately.
@@ -659,7 +684,7 @@ export default function NewEventPage() {
             Back
           </Button>
         )}
-        {step < 4 ? (
+        {step < lastStep ? (
           <Button
             className="flex-1"
             disabled={step === 0 && name.trim() === ""}

@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode } from "react";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
@@ -56,15 +56,17 @@ export function PageShell({
   title,
   subtitle,
   back,
+  style,
   children,
 }: {
   title: string;
   subtitle?: string;
   back?: { href: string; label: string };
+  style?: CSSProperties;
   children: ReactNode;
 }) {
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
+    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8" style={style}>
       <header className="mb-6">
         {back && (
           <a
@@ -82,6 +84,19 @@ export function PageShell({
       </header>
       {children}
     </main>
+  );
+}
+
+/**
+ * An event's custom logo, if one was set. Plain <img> on purpose: logos are
+ * arbitrary user-hosted URLs, which next/image can't optimize without
+ * whitelisting every possible domain.
+ */
+export function BrandLogo({ url, className = "" }: { url?: string | null; className?: string }) {
+  if (!url) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={url} alt="Event logo" className={`object-contain ${className}`} />
   );
 }
 

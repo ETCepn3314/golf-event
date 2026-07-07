@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Must be a 6-digit hex color");
+
 export const payoutConfigSchema = z.object({
   type: z.enum(["percentage", "fixed"]),
   places: z.array(z.number().nonnegative()).min(1).max(10),
@@ -20,6 +22,16 @@ export const eventConfigSchema = z.object({
     .optional(),
   /** Free-text local rules / notes, shown to all players on the leaderboard. */
   rulesNotes: z.string().max(2000).optional(),
+  /** Per-event theming. logoUrl capped so it stays a hosted link, not a huge
+   * inline data URL that would bloat every leaderboard poll. */
+  branding: z
+    .object({
+      themeId: z.string().max(40).optional(),
+      brandColor: hexColor.optional(),
+      accentColor: hexColor.optional(),
+      logoUrl: z.string().url().max(2000).optional(),
+    })
+    .optional(),
 });
 
 export const formatSchema = z.enum([

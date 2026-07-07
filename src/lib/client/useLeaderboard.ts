@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Branding } from "@/lib/branding";
 
 export interface LeaderboardData {
-  event: { name: string; format: string; status: string; rulesNotes?: string | null };
+  event: {
+    name: string;
+    format: string;
+    status: string;
+    rulesNotes?: string | null;
+    branding?: Branding | null;
+  };
   generatedAt: string;
   pot: number;
   payoutsFinal: boolean;
